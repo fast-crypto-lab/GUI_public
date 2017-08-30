@@ -1,0 +1,78 @@
+CC=    arm-xilinx-linux-gnueabi-gcc
+CXX=   arm-xilinx-linux-gnueabi-g++
+LD=    arm-xilinx-linux-gnueabi-g++
+
+CFLAGS= -O2 -mfpu=neon -static-libgcc -Wl,-static -la
+CXXFLAGS= -O2 -mfpu=neon -static-libgcc -Wl,-static -la
+#CXXFLAGS= -O2 -mssse3 -mpclmul -Wall -Wextra -fno-exceptions -fno-rtti
+INCPATH= 
+LDFLAGS= 
+LIBPATH= -L/usr/local/lib -L/opt/local/lib -L/usr/lib
+LIBS=    -lcrypto
+#LIBS=    -lm -lcrypto -lstdc++
+
+
+
+
+OBJ = blas.o stat_profile.o gf2ext.o gf2ext_poly.o quartz.o sha256.o gf2ext-neon.o gf2ext-iso.o
+
+CSRC= $(wildcard *.cpp)
+
+
+ifndef QUARTZ
+	QUARTZ1= QUARTZ96
+else
+	QUARTZ1=$(QUARTZ)
+endif
+	CFLAGS += -D$(QUARTZ1)
+	CXXFLAGS += -D$(QUARTZ1)
+
+ifdef HFE
+        CFLAGS+=  -DHFE2
+        CXXFLAGS+= -DHFE2
+endif
+	
+
+ifdef DEBUG
+        CFLAGS+=  -D_DEBUG_
+        CXXFLAGS+= -D_DEBUG_
+endif
+
+ifdef NO_SSE
+	CFLAGS += -D_NO_SSE_
+	CXXFLAGS += -D_NO_SSE_
+endif
+
+ifdef AVX2
+	CFLAGS += -mavx2 -D_USE_AVX2_
+	CXXFLAGS += -mavx2 -D_USE_AVX2_
+endif
+
+ifdef AVX
+	CFLAGS += -mavx -D_USE_AVX_
+	CXXFLAGS += -mavx -D_USE_AVX_
+endif
+
+ifdef GPROF
+	CFLAGS += -pg
+	CXXFLAGS += -pg
+	LDFLAGS += -pg
+endif
+
+.PHONY: all tests tables clean
+
+all: $(OBJ)
+	cd TestAndBenchmark && $(MAKE) QUARTZ=$(QUARTZ1)
+
+%-test: $(OBJ) %-test.o
+	$(LD) $(LDFLAGS) $(LIBPATH) -o $@ $^ $(LIBS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) $(INCPATH) -c $<
+
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) $(INCPATH) -c $<
+
+clean:
+	rm *.o; rm *-test; cd TestAndBenchmark && $(MAKE) clean
+

@@ -1,0 +1,78 @@
+CC=    arm-xilinx-linux-gnueabi-gcc
+CXX=   arm-xilinx-linux-gnueabi-g++
+LD=    arm-xilinx-linux-gnueabi-g++
+
+CFLAGS= -O2 -mfpu=neon -static-libgcc -Wl,-static
+CXXFLAGS= -O2 -mfpu=neon -static-libgcc -Wl,-static
+
+INCPATH= -I../
+LDFLAGS=
+LIBPATH= -L../
+LIBS=    
+
+
+OBJ= $(wildcard ../*.o)
+
+TAR= gf2ext-test gf-benchmark-test gf2ext_poly-test quartz_core-test
+
+CSRC= $(wildcard *.cpp)
+
+
+ifndef QUARTZ
+        QUARTZ1= QUARTZ96
+else
+	QUARTZ1= $(QUARTZ)
+endif
+        CFLAGS += -D$(QUARTZ1)
+        CXXFLAGS += -D$(QUARTZ1)
+
+
+
+ifdef HFE
+        CFLAGS+=  -DHFE2
+        CXXFLAGS+= -DHFE2
+endif
+	
+
+ifdef DEBUG
+        CFLAGS+=  -D_DEBUG_
+        CXXFLAGS+= -D_DEBUG_
+endif
+
+ifdef NO_SSE
+	CFLAGS += -D_NO_SSE_
+	CXXFLAGS += -D_NO_SSE_
+endif
+
+ifdef AVX2
+	CFLAGS += -mavx2 -D_USE_AVX2_
+	CXXFLAGS += -mavx2 -D_USE_AVX2_
+endif
+
+ifdef AVX
+	CFLAGS += -mavx -D_USE_AVX_
+	CXXFLAGS += -mavx -D_USE_AVX_
+endif
+
+ifdef GPROF
+	CFLAGS += -pg
+	CXXFLAGS += -pg
+	LDFLAGS += -pg
+endif
+
+.PHONY: all tests tables clean
+
+all: $(TAR)
+#$(OBJ)
+
+%-test: %-test.cpp
+	$(CXX) $(CXXFLAGS) $(INCPATH) $(OBJ) -o $@ $^
+
+%.o: %.c
+	$(CC) $(CFLAGS) $(INCPATH) -c $<
+
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) $(INCPATH) -c $<
+
+clean:
+	rm *.o; rm *-test
